@@ -16,12 +16,11 @@ function BF(program) {
     // TODO - figure out if more efficient to have some kind of memory mapping than one large array
     let data = Array(5).fill(0);
 
-    // Instruction Pointer, Data Pointer, Bracket Stack, swap ReGister
+    // Instruction Pointer, Data Pointer, Bracket Stack
     let IP = 0;
     let DP = 0;
 
     let BS = [];
-    let RG = 0;
 
     let cycles = -1;
     while(program[IP]) {
@@ -57,16 +56,18 @@ function BF(program) {
                 if(data[DP] > 0) {
                     // as IP is advanced at the end of each loop, unless set IP - 1 here, the actual [ loop instruction jumped back to will be skipped
                     IP = BS.pop() - 1;
+                } else {
+                    BS.pop();
+                }
 
                     // Below wouldn't work, as BF has WHILE-DO loops, not DO-WHILE
                     // If the other way around, could have just used a single stack to track bracket addresses, I think. 
                     // !!TODO - try to figure out if BF remains turing-complete if had DO-WHILE 
-                    /* Want to pop out [-address and push -] address 
+                    /* Want to pop out [-address and push -] address using swap register
                     RG = IP;                
                     IP = BS.pop() - 1;
                     BS.push(RG);
                     */
-                }
                 break;
             default:
                 return "summatwong at cycle " + cycles + "'" + program[IP] + "'";
