@@ -4,7 +4,7 @@
 // This function will scan a supplied BF program and return a dictionary object which associates each bracket with its matching pair
 // The key-value pairs will be the position index of the brackets within the array containing the program.
 
-// !TODO - insert this into the main program once working.
+// TODO: insert this into the main program once working.
 let program = "+++[->++[->+<]<]";
 
 if(bracketChecker(program)) {
