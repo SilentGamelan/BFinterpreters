@@ -10,12 +10,9 @@
  *  I'm aware that there are much shorter, faster, and smarter implementations, but this is mine.
  */
 
-// I should probably try to rewrite this from scratch in a more JS-ideomatic style
-// I'm pretty much emulating c-style, which probably doesn't have a great advantage here.
 
-// default size of memory tape = 13,000 blocks, alterable during BF() call
 
-function BF(program, memSize = 13000, memWrap = true, valueWrap = true, bracketMap = true) {
+function BF(program, memSize = 13000, memWrap = true, valueWrap = true, bracketMap = true, input="Hello World.", VALMAX=255) {
     
     // CAN'T split and push in one chain, as push returns the new length of the array!! 
     // Took me hours to figure out what was going wrong!
@@ -32,14 +29,20 @@ function BF(program, memSize = 13000, memWrap = true, valueWrap = true, bracketM
     // Instruction Pointer, Data Pointer, Bracket Stack
     let IP = 0;
     let DP = 0;
-
     let BS = [];
 
+    // input/output streams
+    // for the moment, just simulate with arrays - input is currently an optional parameter
+    // FIXME: add external file handling, needs to detect if user is passing array or a filename. Also, need to handle the optional parameters correctly
+    let output = [];
+
     let cycles = -1;
+    // currently will only stop on falsy values, have taken 0 to be EOF marker
     while(program[IP]) {
         cycles++;
         console.log(cycles, data, IP, program[IP], DP);
         // TODO: protect against moving pointers beyond 0 or end
+        // TODO: add input/output operators , . 
         switch (program[IP]) {
             case '+':
                 data[DP]++;
@@ -86,21 +89,28 @@ function BF(program, memSize = 13000, memWrap = true, valueWrap = true, bracketM
                 break;
         }
 
-        // Adding in optional buffer/value over/underflow protection
+        // TODO: Adding in optional buffer/value over/underflow protection
         // FIXME: make a decision on what I'm actually aiming for here
-        /// Am I trying to make a minimal, highspeed interpreter or a complete one?
-        // Think it would be better to write two versions really
-
-        // Following this decision, should this be shunted off to a separate function?
-        // How do I decide when globals are BAD, and when are function calls with parameters really necessary with JS?
-        if(DP > memSize) {
-            memWrap ? DP = 0 : DP = -1;
-        } else if (DP < 0) {
-            memWrap ? DP = memSize : DP = -1;
+        /** Am I trying to make a minimal, highspeed interpreter or a complete one?
+         * 
+         * Think it would be better to write two versions really
+         * Following this decision, should this be shunted off to a separate function?
+         * How do I decide when globals are BAD, and when are function calls with parameters really necessary with JS?
+         */
+        if(memWrap) { 
+            if(DP > memSize) {
+                DP = 0
+            } else if (DP < 0) {
+                DP = memSize;
+            }
         }
 
-        if(data[DP] < 0) {
-            valueWrap ? data[DP] =  valMax : DP = -1;
+        if(valueWrap) {
+            if(data[DP] < 0) {
+                data[DP] =  VALMAX;
+            } else if(data[DP] > VALMAX) {
+                data[DP] = 0;
+            }
         }
         IP++;
     }
