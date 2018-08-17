@@ -1,20 +1,33 @@
-//!!BF  Nested loops won't work the way I thought they would
-// If emulating a normal nested loop, will have to remember to set the counter value for the inner loop inside the outer loop
+// broinFerk.js - a simple javascript BrainF**k interpreter 
+
+/**
+ *  Originally began as an attempt to emulate a turing machine from scratch, without following a tutorial.
+ *  I was inspired to try after becoming bored with my other practice projects and stumbling across my old copy of Godel, Escher and Bach by Hofstader.
+ * 
+ *  While looking up a concise definition of a turing machine I happened upon a description of the language P′′ created by Corrado Böhm, which in turn led me
+ *  a description of the brainf**k language (which is considered a variation of P′′)
+ * 
+ *  I'm aware that there are much shorter, faster, and smarter implementations, but this is mine.
+ */
 
 // I should probably try to rewrite this from scratch in a more JS-ideomatic style
 // I'm pretty much emulating c-style, which probably doesn't have a great advantage here.
 
-function BF(program) {
-    program = program.split("")
+// default size of memory tape = 13,000 blocks, alterable during BF() call
+
+function BF(program, memSize = 13000, memWrap = true, valueWrap = true, bracketMap = true) {
+    
     // CAN'T split and push in one chain, as push returns the new length of the array!! 
     // Took me hours to figure out what was going wrong!
+    program = program.split("")
 
+    // TODO: move this to bracket checking function? Am I trying to proactively handle invalid programs?
     // Add 0 as EOF marker
     program.push(0);
 
     // set number of available data cells (typically 30,000) and initialise to 0 
     // TODO - figure out if more efficient to have some kind of memory mapping than one large array
-    let data = Array(5).fill(0);
+    let data = Array(memSize).fill(0);
 
     // Instruction Pointer, Data Pointer, Bracket Stack
     let IP = 0;
@@ -26,7 +39,7 @@ function BF(program) {
     while(program[IP]) {
         cycles++;
         console.log(cycles, data, IP, program[IP], DP);
-        //TODO protect against moving pointers beyond 0 or end
+        // TODO: protect against moving pointers beyond 0 or end
         switch (program[IP]) {
             case '+':
                 data[DP]++;
@@ -44,25 +57,24 @@ function BF(program) {
                 if(data[DP] > 0) {
                     BS.push(IP);
                 } else {
-                    // !!replace with anonymous function?
+                    // FIXME: decide if using brackMap flag, if so then need to bind appropriate function to findMatchingBracket variable above
                     // Will jump to matching bracket, then the end-of-loop IP increment will move to following instruction.
                     IP = findMatchingBracket(program, IP);
                 }
                 break;
             case ']':
-                // !!TODO - still not sure if ] needs to check DP, or always just jumps back to matching [
-                // Seem to be different interpretations of the rules.
-                // IF ] also checks DP, it's essentially allowing a BREAK from the DO-WHILE loop.
+                // As ] also checks DP, it's essentially allowing a BREAK from the DO-WHILE loop.
                 if(data[DP] > 0) {
                     // as IP is advanced at the end of each loop, unless set IP - 1 here, the actual [ loop instruction jumped back to will be skipped
                     IP = BS.pop() - 1;
                 } else {
+                    // dump expired opening bracket
                     BS.pop();
                 }
 
                     // Below wouldn't work, as BF has WHILE-DO loops, not DO-WHILE
                     // If the other way around, could have just used a single stack to track bracket addresses, I think. 
-                    // !!TODO - try to figure out if BF remains turing-complete if had DO-WHILE 
+                    // TODO - try to figure out if BF remains turing-complete if had DO-WHILE 
                     /* Want to pop out [-address and push -] address using swap register
                     RG = IP;                
                     IP = BS.pop() - 1;
@@ -73,17 +85,36 @@ function BF(program) {
                 return "summatwong at cycle " + cycles + "'" + program[IP] + "'";
                 break;
         }
+
+        // Adding in optional buffer/value over/underflow protection
+        // FIXME: make a decision on what I'm actually aiming for here
+        /// Am I trying to make a minimal, highspeed interpreter or a complete one?
+        // Think it would be better to write two versions really
+
+        // Following this decision, should this be shunted off to a separate function?
+        // How do I decide when globals are BAD, and when are function calls with parameters really necessary with JS?
+        if(DP > memSize) {
+            memWrap ? DP = 0 : DP = -1;
+        } else if (DP < 0) {
+            memWrap ? DP = memSize : DP = -1;
+        }
+
+        if(data[DP] < 0) {
+            valueWrap ? data[DP] =  valMax : DP = -1;
+        }
         IP++;
     }
     return data;
 }
 
-/*!TODO - merge findMatchingBracket with bracketChecker
-        - can probably now use it at run-time rather than pre-validating program
-        - probably want both options, pre-validation for when writing compiler/programming tools.
-        - at the moment, findMatchingBracket relies on a valid program
-        
-        > actually, could also build up a bracket-map during pre-validation to potentially increase performance
+/**
+ * TODO:
+ *       - merge findMatchingBracket with bracketChecker
+ *       - can probably now use it at run-time rather than pre-validating program
+ *       - probably want both options, pre-validation for when writing compiler/programming tools.
+ *       - at the moment, findMatchingBracket relies on a valid program
+ *       
+ *       > actually, could also build up a bracket-map during pre-validation to potentially increase performance
 */
 function bracketChecker(brackets) {
     // make an array of each bracket in order
@@ -128,9 +159,13 @@ function findMatchingBracket(program, IP) {
     return IP;
 }
 
-
+// required for value-wrap around, as JS % operator does not behave as expected for negative values
+function mod(x, y) {
+    let r = x % y;
+    return r < 0 ? y + r : r; 
+}
 
 let proggy = "+++[->++[->+<]<]";
-let result = bracketChecker(proggy) ? BF(proggy) :  "nup";
+let result = bracketChecker(proggy) ? BF(proggy, 2000) :  "nup";
 
 console.log(result);
